@@ -55,7 +55,31 @@ try:
     openai.api_key = OPENAI_API_KEY
     with open("output.wav", "rb") as audio_file:
         transcript = openai.Audio.transcribe("whisper-1", audio_file)
-        print(f"Transcription: \n\n{transcript['text']}\n")
+        original_transcription = transcript["text"]
+        print(f"Original transcription: \n\n{original_transcription}\n")
 except requests.exceptions.RequestException as e:
     print(f"Error while transcribing the audio file: {str(e)}")
+    sys.exit(1)
+
+# Proofread the transcription using ChatGPT
+try:
+    completion = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": f'Please proofread and enhance the following text: "{original_transcription}"'}
+        ]
+    )
+    enhanced_transcription = completion.choices[0].message["content"].strip("\"")
+    print(f"Enhanced transcription: \n\n{enhanced_transcription}\n")
+except requests.exceptions.RequestException as e:
+    print(f"Error while enhancing the transcription: {str(e)}")
+    sys.exit(1)
+
+# Delete the recorded audio file
+try:
+    os.remove("output.wav")
+    # print("Recorded audio file has been deleted.")
+except OSError as e:
+    print(f"Error while deleting the audio file: {str(e)}")
     sys.exit(1)
